@@ -18,4 +18,4 @@ O script:
 - opcionalmente apaga as linhas vazias que sobrarem;
 - deixa a coluna **Valor** em branco.
 
-Se o Chrome bloquear a colagem no console, digite `allow pasting` e Enter antes.
+Se o Chrome bloquear a colagem no console, digite `permitir colar` (ou `allow pasting`, se o navegador estiver em inglês) e Enter antes de colar o script.
