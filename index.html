@@ -64,7 +64,7 @@
     <ol class="muted" style="margin-top:14px">
       <li>Abra o painel do componente com a tabela <b>Mapeamento de saída</b>.</li>
       <li>Aperte <code>F12</code> → aba <b>Console</b> (se o Chrome avisar sobre colagem, digite <code>permitir colar</code> — ou <code>allow pasting</code> se estiver em inglês — e aperte Enter; só então cole o script).</li>
-      <li>Cole o script e aperte Enter. As chaves são preenchidas e novas linhas criadas se faltar.</li>
+      <li>Aperte <code>Ctrl+L</code> para limpar o console, clique na linha de digitação e cole o script (ele começa com <code>(async () =&gt; {</code>). Aperte Enter. As chaves são preenchidas e novas linhas criadas se faltar.</li>
       <li>Clique em <b>Salvar</b> no topo do editor.</li>
     </ol>
   </section>
@@ -195,6 +195,7 @@ $('file').onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
 $('sheet').onchange = e => setCols(sheetHeader(e.target.value));
 $('cols').oninput = render;
 $('rem').onchange = render;
+$('code').onfocus = $('code').onclick = e => e.target.select();
 $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText($('code').value); }
   catch { $('code').select(); document.execCommand('copy'); }
