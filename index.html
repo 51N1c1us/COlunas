@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preencher Colunas</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --muted:#667085; --line:#d9dde3; --accent:#5b2fd6; --ok:#12805c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14161a; --card:#1d2026; --fg:#e8eaed; --muted:#9aa3af; --line:#333842; --accent:#9b7bff; --ok:#3ecf9a; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
+  main { max-width:760px; margin:0 auto; display:grid; gap:16px; }
+  h1 { margin:0; font-size:22px; }
+  p.sub { margin:4px 0 0; color:var(--muted); }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  h2 { margin:0 0 10px; font-size:15px; }
+  #drop { border:2px dashed var(--line); border-radius:10px; padding:28px; text-align:center; cursor:pointer; color:var(--muted); }
+  #drop.over { border-color:var(--accent); color:var(--accent); }
+  textarea { width:100%; min-height:180px; font:13px/1.4 ui-monospace,monospace; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:10px; resize:vertical; }
+  #code { min-height:120px; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0 0; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 16px; font:inherit; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  select { font:inherit; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--fg); }
+  .muted { color:var(--muted); font-size:13px; }
+  .ok { color:var(--ok); }
+  ol { margin:0; padding-left:20px; } li { margin:4px 0; }
+  code { background:var(--bg); padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Preencher Colunas</h1>
+    <p class="sub">Envie a planilha, copie o script gerado e cole no console da página do componente.</p>
+  </header>
+
+  <section>
+    <h2>1. Envie o arquivo</h2>
+    <div id="drop">Arraste o arquivo aqui ou clique para escolher<br><span class="muted">.xlsx, .xls, .csv, .txt — só a primeira linha (cabeçalho) é lida, o arquivo não sai do seu computador</span></div>
+    <input id="file" type="file" accept=".xlsx,.xlsm,.xls,.csv,.txt,.tsv" hidden>
+    <div class="row" id="sheetRow" hidden>
+      <label>Aba: <select id="sheet"></select></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Colunas encontradas <span class="muted" id="count"></span></h2>
+    <textarea id="cols" placeholder="Uma coluna por linha. Também dá para colar aqui a linha de cabeçalho copiada do Excel."></textarea>
+    <div class="row">
+      <label><input type="checkbox" id="rem"> Apagar as linhas vazias que sobrarem no final</label>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Copie e rode</h2>
+    <textarea id="code" readonly></textarea>
+    <div class="row">
+      <button id="copy" disabled>Copiar script</button>
+      <span id="msg" class="muted"></span>
+    </div>
+    <ol class="muted" style="margin-top:14px">
+      <li>Abra o painel do componente com a tabela <b>Mapeamento de saída</b>.</li>
+      <li>Aperte <code>F12</code> → aba <b>Console</b> (se o Chrome pedir, digite <code>allow pasting</code> e Enter).</li>
+      <li>Cole o script e aperte Enter. As chaves são preenchidas e novas linhas criadas se faltar.</li>
+      <li>Clique em <b>Salvar</b> no topo do editor.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let workbook = null;
+
+// ---------- leitura do arquivo ----------
+function splitCsvLine(line, d) {
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === d) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+function decode(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+
+function headerFromText(text) {
+  const line = text.replace(/^﻿/, '').split(/\r?\n/).find(l => l.trim() !== '') || '';
+  const d = ['|', ';', '\t', ','].map(s => [s, line.split(s).length]).sort((a, b) => b[1] - a[1])[0][0];
+  return splitCsvLine(line, d);
+}
+
+function loadSheetJs() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ok; s.onerror = () => fail(new Error('Não consegui carregar o leitor de Excel (sem internet?). Salve como CSV ou cole o cabeçalho manualmente.'));
+    document.head.appendChild(s);
+  });
+}
+
+function sheetHeader(name) {
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, raw: false, defval: '' });
+  return (rows[0] || []).map(String);
+}
+
+async function handleFile(f) {
+  $('msg').textContent = ''; $('sheetRow').hidden = true; workbook = null;
+  try {
+    if (/\.(xlsx|xlsm|xls)$/i.test(f.name)) {
+      await loadSheetJs();
+      workbook = XLSX.read(await f.arrayBuffer(), { type: 'array', sheetRows: 1 });
+      $('sheet').innerHTML = workbook.SheetNames.map(n => `<option>${n.replace(/</g, '&lt;')}</option>`).join('');
+      $('sheetRow').hidden = workbook.SheetNames.length < 2;
+      setCols(sheetHeader(workbook.SheetNames[0]));
+    } else {
+      setCols(headerFromText(decode(await f.slice(0, 262144).arrayBuffer())));
+    }
+  } catch (e) { $('msg').textContent = e.message; }
+}
+
+// ---------- geração do script ----------
+function parseCols() {
+  const seen = new Set();
+  return $('cols').value.split(/[\r\n\t]+/).map(s => s.trim()).filter(s => s && !seen.has(s) && seen.add(s));
+}
+
+function setCols(arr) { $('cols').value = arr.map(s => s.trim()).filter(Boolean).join('\n'); render(); }
+
+const CORE = `(async () => {
+  const COLUNAS = __COLS__;
+  const REMOVER_VAZIAS = __REM__;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const tabela = document.querySelector('.task-mapping-table');
+  if (!tabela) return alert('Tabela "Mapeamento de saída" não encontrada. Abra o painel do componente primeiro.');
+  const linhas = () => [...tabela.querySelectorAll('.task-mapping-table__row')];
+  const campos = l => l.querySelectorAll('input');
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+  const escrever = (el, v) => {
+    setter.call(el, v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const existentes = new Set(linhas().map(l => campos(l)[0].value.trim()).filter(Boolean));
+  const novas = COLUNAS.filter(c => !existentes.has(c));
+  const botaoAdd = tabela.querySelector('.task-mapping-table__header button');
+  let preenchidas = 0;
+  for (const nome of novas) {
+    let vazia = linhas().find(l => !campos(l)[0].value.trim());
+    if (!vazia) {
+      if (!botaoAdd) { console.warn('Botão de adicionar linha não encontrado.'); break; }
+      botaoAdd.click(); await sleep(60);
+      vazia = linhas().find(l => !campos(l)[0].value.trim());
+      if (!vazia) { console.warn('Não consegui criar nova linha.'); break; }
+    }
+    escrever(campos(vazia)[0], nome);
+    preenchidas++;
+  }
+  let apagadas = 0;
+  if (REMOVER_VAZIAS) {
+    for (const l of linhas().reverse()) {
+      if ([...campos(l)].every(i => !i.value.trim())) { l.querySelector('button').click(); apagadas++; await sleep(30); }
+    }
+  }
+  const msg = preenchidas + ' coluna(s) preenchida(s), ' + (COLUNAS.length - novas.length) + ' já existiam' + (REMOVER_VAZIAS ? ', ' + apagadas + ' linha(s) vazia(s) apagada(s)' : '') + '. Lembre de salvar.';
+  console.log(msg); alert(msg);
+})();`;
+
+function render() {
+  const cols = parseCols();
+  $('count').textContent = cols.length ? `(${cols.length})` : '';
+  $('code').value = cols.length
+    ? CORE.replace('__COLS__', JSON.stringify(cols)).replace('__REM__', $('rem').checked)
+    : '';
+  $('copy').disabled = !cols.length;
+}
+
+// ---------- eventos ----------
+const drop = $('drop');
+drop.onclick = () => $('file').click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
+$('file').onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
+$('sheet').onchange = e => setCols(sheetHeader(e.target.value));
+$('cols').oninput = render;
+$('rem').onchange = render;
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('code').value); }
+  catch { $('code').select(); document.execCommand('copy'); }
+  $('msg').textContent = 'Copiado!'; $('msg').className = 'ok';
+  setTimeout(() => { $('msg').textContent = ''; $('msg').className = 'muted'; }, 2500);
+};
+</script>
+</body>
+</html>
