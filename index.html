@@ -50,6 +50,10 @@
     <h2>2. Colunas encontradas <span class="muted" id="count"></span></h2>
     <textarea id="cols" placeholder="Uma coluna por linha. Também dá para colar aqui a linha de cabeçalho copiada do Excel."></textarea>
     <div class="row">
+      <label>Modelo do valor: <input id="tpl" type="text" value="{{contact.extra.{coluna}}}" style="width:300px;font:13px ui-monospace,monospace;padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)"></label>
+      <span class="muted">{coluna} = nome da coluna. Deixe vazio para não preencher o Valor.</span>
+    </div>
+    <div class="row">
       <label><input type="checkbox" id="rem"> Apagar as linhas vazias que sobrarem no final</label>
     </div>
   </section>
@@ -139,6 +143,7 @@ function setCols(arr) { $('cols').value = arr.map(s => s.trim()).filter(Boolean)
 
 const CORE = `(async () => {
   const COLUNAS = __COLS__;
+  const MODELO = __TPL__;
   const REMOVER_VAZIAS = __REM__;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const tabela = document.querySelector('.task-mapping-table');
@@ -151,7 +156,16 @@ const CORE = `(async () => {
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
-  const existentes = new Set(linhas().map(l => campos(l)[0].value.trim()).filter(Boolean));
+  const valorDe = nome => MODELO.split('{coluna}').join(nome);
+  const existentes = new Set();
+  let valores = 0;
+  for (const l of linhas()) {
+    const [k, v] = campos(l);
+    const nome = k.value.trim();
+    if (!nome) continue;
+    existentes.add(nome);
+    if (MODELO && COLUNAS.includes(nome) && !v.value.trim()) { escrever(v, valorDe(nome)); valores++; }
+  }
   const novas = COLUNAS.filter(c => !existentes.has(c));
   const botaoAdd = tabela.querySelector('.task-mapping-table__header button');
   let preenchidas = 0;
@@ -163,7 +177,9 @@ const CORE = `(async () => {
       vazia = linhas().find(l => !campos(l)[0].value.trim());
       if (!vazia) { console.warn('Não consegui criar nova linha.'); break; }
     }
-    escrever(campos(vazia)[0], nome);
+    const [k, v] = campos(vazia);
+    escrever(k, nome);
+    if (MODELO) { escrever(v, valorDe(nome)); valores++; }
     preenchidas++;
   }
   let apagadas = 0;
@@ -172,7 +188,7 @@ const CORE = `(async () => {
       if ([...campos(l)].every(i => !i.value.trim())) { l.querySelector('button').click(); apagadas++; await sleep(30); }
     }
   }
-  const msg = preenchidas + ' coluna(s) preenchida(s), ' + (COLUNAS.length - novas.length) + ' já existiam' + (REMOVER_VAZIAS ? ', ' + apagadas + ' linha(s) vazia(s) apagada(s)' : '') + '. Lembre de salvar.';
+  const msg = preenchidas + ' chave(s) nova(s), ' + valores + ' valor(es) preenchido(s), ' + (COLUNAS.length - novas.length) + ' já existiam' + (REMOVER_VAZIAS ? ', ' + apagadas + ' linha(s) vazia(s) apagada(s)' : '') + '. Lembre de salvar.';
   console.log(msg); alert(msg);
 })();`;
 
@@ -180,7 +196,7 @@ function render() {
   const cols = parseCols();
   $('count').textContent = cols.length ? `(${cols.length})` : '';
   $('code').value = cols.length
-    ? CORE.replace('__COLS__', JSON.stringify(cols)).replace('__REM__', $('rem').checked)
+    ? CORE.replace('__COLS__', () => JSON.stringify(cols)).replace('__TPL__', () => JSON.stringify($('tpl').value)).replace('__REM__', () => $('rem').checked)
     : '';
   $('copy').disabled = !cols.length;
 }
@@ -195,6 +211,7 @@ $('file').onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
 $('sheet').onchange = e => setCols(sheetHeader(e.target.value));
 $('cols').oninput = render;
 $('rem').onchange = render;
+$('tpl').oninput = render;
 $('code').onfocus = $('code').onclick = e => e.target.select();
 $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText($('code').value); }

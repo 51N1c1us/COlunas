@@ -16,6 +16,6 @@ O script:
 - clica no botão **+** automaticamente quando as linhas em branco acabam;
 - ignora colunas que já estão na tabela (pode rodar de novo sem duplicar);
 - opcionalmente apaga as linhas vazias que sobrarem;
-- deixa a coluna **Valor** em branco.
+- preenche a coluna **Valor** com o modelo (padrão `{{contact.extra.{coluna}}}`, onde `{coluna}` vira o nome da coluna), inclusive nas chaves que já existiam com Valor vazio; valores já preenchidos não são alterados. Deixe o modelo vazio para não mexer no Valor.
 
 Se o Chrome bloquear a colagem no console, digite `permitir colar` (ou `allow pasting`, se o navegador estiver em inglês) e Enter antes de colar o script.
