@@ -94,7 +94,9 @@
     return !campoBusca();
   };
   const raizLista = () => {
-    const busca = campoBusca();
+    const busca = campoBusca(); if (!busca) return null;
+    const popup = busca.closest('[data-popper-placement]');   // a lista é um popup solto no <body>: NUNCA sobe além dele
+    if (popup) return popup;
     let raiz = busca;
     for (let i = 0; i < 8 && raiz; i++) {
       raiz = raiz.parentElement;
@@ -102,38 +104,50 @@
     }
     return raiz;
   };
-  const rolavelDe = raiz => [...raiz.querySelectorAll('*'), raiz].find(e => e.scrollHeight > e.clientHeight + 5 && /auto|scroll/.test(getComputedStyle(e).overflowY));
+  // só os textos dos itens (li) da lista; se a lista não usar <li>, cai para qualquer texto
+  const folhasLista = raiz => {
+    const f = [...raiz.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('input') && visivel(e) && !e.closest('.task-flow-node, .canvas-main'));
+    const li = f.filter(e => e.closest('li'));
+    return li.length ? li : f;
+  };
+  const rolavelDe = raiz => [...raiz.querySelectorAll('*'), raiz]
+    .filter(e => e.scrollHeight > e.clientHeight + 5 && /auto|scroll/.test(getComputedStyle(e).overflowY))
+    .sort((a, b) => b.scrollHeight - a.scrollHeight)[0]; // o MAIOR rolável = a lista (não algum elemento pequeno dentro dela)
   const digitarBusca = async txt => {
     const i = campoBusca(); if (!i) return;
     i.focus(); setter.call(i, txt);
     i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true }));
     await sleep(PAUSA);
   };
-  // acha o item com esse texto na lista aberta: primeiro digitando na busca, depois rolando. Devolve o elemento (não clica).
-  const buscarItem = async (txt, comparar = x => x) => {
-    const raiz = raizLista(); if (!raiz) return null;
-    const rolavel = rolavelDe(raiz);
-    const area = rolavel || raiz; // capturado ANTES de digitar, para não confundir com o texto do campo que abriu a lista
-    const procura = () => [...area.querySelectorAll('*')].find(e => e.children.length === 0 && visivel(e) && comparar(e.textContent.trim()) === txt);
+  // acha o item com esse texto na lista aberta. Procura na lista inteira (sem cache de elementos), ignora o card no canvas e o campo
+  // que abriu a lista (`excluir`). Ordem: já no DOM -> rolando -> digitando na busca. Devolve o elemento (não clica).
+  const buscarItem = async (txt, comparar = x => x, excluir = null) => {
+    const procura = () => {
+      const raiz = raizLista(); if (!raiz) return null;
+      return [...raiz.querySelectorAll('*')].find(e => e.children.length === 0 && visivel(e) && comparar(e.textContent.trim()) === txt
+        && !e.closest('.task-flow-node, .canvas-main') && !(excluir && excluir.contains(e)));
+    };
     let el = procura(); if (el) return el;
-    await digitarBusca(txt);
-    el = await espera(procura, 2000); if (el) return el;
-    await digitarBusca('');
+    const raiz0 = raizLista(), rolavel = raiz0 && rolavelDe(raiz0);
     if (rolavel) {
       rolavel.scrollTop = 0; await sleep(120);
       for (let i = 0, ant = -1; i < 600 && rolavel.scrollTop !== ant; i++) {
         el = procura(); if (el) return el;
         ant = rolavel.scrollTop; rolavel.scrollTop += Math.max(40, rolavel.clientHeight * 0.8); await sleep(90);
       }
+      el = procura(); if (el) return el;
     }
-    return procura();
+    await digitarBusca(txt);
+    el = await espera(procura, 2000);
+    await digitarBusca('');
+    return el;
   };
 
   // lê TODOS os itens da lista aberta (rolando) — usado só para diagnóstico quando um template não é encontrado
   const lerTudo = async () => {
     const raiz = raizLista(); if (!raiz) return [];
     const itens = new Set();
-    const coletar = () => [...raiz.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('input') && visivel(e)).forEach(e => itens.add(e.textContent.trim()));
+    const coletar = () => folhasLista(raiz).forEach(e => itens.add(e.textContent.trim()));
     const rolavel = rolavelDe(raiz);
     coletar();
     if (rolavel) {
@@ -194,13 +208,17 @@
   };
   const abrirNumeros = async () => {
     if (campoBusca()) return true;
-    const g = gatilhoNum(); if (!g) return false;
-    scrollPara(g); clicar(g);
-    return !!(await espera(campoBusca));
+    for (let t = 0; t < 3; t++) {
+      const g = await espera(gatilhoNum, 2500); if (!g) continue;
+      scrollPara(g); await sleep(150); clicar(g);
+      if (await espera(campoBusca, 1500)) return true;   // só tenta de novo se NÃO abriu (clicar de novo fecharia)
+      await sleep(PAUSA);
+    }
+    return false;
   };
   const alternarNumero = async (num, quer) => {
     if (!(await abrirNumeros())) { console.error(`  ✖ ${num}: a lista "Números WhatsApp" não abriu.`); return false; }
-    const item = await buscarItem(num, dig);
+    const item = await buscarItem(num, dig, gatilhoNum());
     if (!item) { console.error(`  ✖ ${num}: não achei este número na lista.`); return false; }
     clicar(item);
     if (await espera(() => marcados().includes(num) === quer, 3000)) { await sleep(PAUSA); return true; }
@@ -210,15 +228,21 @@
   const escolherTemplate = async (num, nome) => {
     let b = blocoDe(num);
     if (!b) return `bloco do número ${num} não existe`;
-    const atual = textoTpl(b);
+    let atual = textoTpl(b);
+    if (/nenhum template dispon/i.test(atual)) {           // pode ser só carregando: espera um pouco
+      await espera(() => { const bb = blocoDe(num); return bb && !/nenhum template dispon/i.test(textoTpl(bb)); }, 12000);
+      b = blocoDe(num); atual = b ? textoTpl(b) : atual;
+      if (/nenhum template dispon/i.test(atual)) return 'o app mostra "Nenhum template disponível para este número" (sem templates neste número agora)';
+    }
     if (atual.includes(nome) && !semTemplate(atual)) return 'ja';
     if (!semTemplate(atual) && !SOBRESCREVER) return `já tem outro template (${atual}); use SOBRESCREVER = true para trocar`;
     scrollPara(b); await sleep(PAUSA);
-    const g = gatilhoTpl(b); if (!g) return 'não achei o campo Template';
+    b = blocoDe(num);                                       // o app pode ter redesenhado o bloco enquanto esperávamos
+    const g = b && gatilhoTpl(b); if (!g) return 'não achei o campo Template';
     clicar(g);
     if (!(await espera(campoBusca))) return 'a lista de templates não abriu';
     await sleep(PAUSA);
-    const item = await buscarItem(nome);
+    const item = await buscarItem(nome, x => x, gatilhoTpl(blocoDe(num)));
     if (!item) {
       await digitarBusca('');
       const tudo = await lerTudo();

@@ -89,7 +89,9 @@
     return !campoBusca();
   };
   const raizLista = () => {
-    const busca = campoBusca();
+    const busca = campoBusca(); if (!busca) return null;
+    const popup = busca.closest('[data-popper-placement]');   // a lista é um popup solto no <body>: NUNCA sobe além dele
+    if (popup) return popup;
     let raiz = busca;
     for (let i = 0; i < 8 && raiz; i++) {
       raiz = raiz.parentElement;
@@ -97,11 +99,17 @@
     }
     return raiz;
   };
+  // só os textos dos itens (li) da lista; se a lista não usar <li>, cai para qualquer texto
+  const folhasLista = raiz => {
+    const f = [...raiz.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('input') && visivel(e) && !e.closest('.task-flow-node, .canvas-main'));
+    const li = f.filter(e => e.closest('li'));
+    return li.length ? li : f;
+  };
   // lê todos os itens da lista aberta, rolando; devolve {itens:Set, linhas:Map texto->elemento (só os visíveis no fim)}
   const lerLista = async () => {
     const raiz = raizLista(); if (!raiz) return null;
     const itens = new Set();
-    const coletar = () => [...raiz.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('input') && visivel(e)).forEach(e => itens.add(e.textContent.trim()));
+    const coletar = () => folhasLista(raiz).forEach(e => itens.add(e.textContent.trim()));
     const rolavel = [...raiz.querySelectorAll('*'), raiz].find(e => e.scrollHeight > e.clientHeight + 5 && /auto|scroll/.test(getComputedStyle(e).overflowY));
     coletar();
     if (rolavel) {
@@ -214,7 +222,7 @@
     const itens = await lerLista();
     if (!(await fechar())) { console.error(`[linhas] ${num}: não consegui fechar a lista. Parei para não escolher template sem querer.`); break; }
     await sleep(PAUSA);
-    linhas.push({ numero: num, templates: itens ? [...itens] : [] });
+    linhas.push({ numero: num, templates: itens ? [...itens].filter(t => !/nenhum template/i.test(t)) : [] });
     console.log(`[linhas] ${num}: ${itens ? itens.size : 0} item(ns) na lista de templates.`);
   }
 

@@ -43,7 +43,8 @@ das saídas do JavaScript. Os blocos ficam à direita do card JavaScript, num lu
 ## Descobrir em qual número está cada template
 
 `descobrir-linhas.js` descobre em qual número (linha) cada template da planilha `Templates_BV_ADM.xlsx` (53 nomes + base oficial) está disponível.
-Ele usa **um** card Template WhatsApp e **marca/desmarca os números sozinho**:
+Ele usa **um** card Template WhatsApp e **marca/desmarca os números sozinho**.
+> v2: lê **somente** os itens do popup da lista (`[data-popper-placement] ul li`). A versão anterior subia demais na página quando a lista tinha poucos itens (ex.: um número com 1 só template) e lia nomes de cards do canvas como se fossem templates — o CSV gerado por ela era inválido e deve ser refeito.
 
 1. Crie/abra um card Template WhatsApp **descartável** (sem templates escolhidos) e deixe o painel *Propriedades* aberto.
    Desmarcar um número apaga a configuração dele no card, por isso o script recusa rodar se algum número já tiver template escolhido
