@@ -18,3 +18,13 @@ Ele **para** na primeira falha (popup não abriu, item não achado, card não cr
 
 Cole `gravador.js` no console, faça **um** arrasto manual até criar o Template WhatsApp, rode `__rec.copiar()`
 e mande o resultado: ele mostra quais eventos (mouse/pointer) o canvas realmente usa e o HTML do popup de busca.
+
+## Renomear os Template WhatsApp com o nome da saída
+
+1. (Opcional) `mapear-ligacoes.js` — só lê a página e mostra a tabela `saida → card`. Avisa se um card estiver ligado a mais de uma saída.
+2. `renomear-cards.js` — para cada card ligado a uma saída: clica no card, preenche **Descrição** no painel *Propriedades* com o nome da saída e fecha o painel.
+   - A primeira execução renomeia só 1 card (`QUANTIDADE = 1`). Conferiu? Troque por `0` e rode de novo.
+   - Cards que já têm nome são pulados (`SOBRESCREVER = false`).
+   - Cards ligados a mais de uma saída são pulados e listados no console — confira à mão.
+   - Para na primeira falha (painel não abriu, nome não apareceu no card, outro card mudou junto).
+3. Clique em **Salvar**.
