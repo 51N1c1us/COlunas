@@ -129,6 +129,21 @@
     return procura();
   };
 
+  // lê TODOS os itens da lista aberta (rolando) — usado só para diagnóstico quando um template não é encontrado
+  const lerTudo = async () => {
+    const raiz = raizLista(); if (!raiz) return [];
+    const itens = new Set();
+    const coletar = () => [...raiz.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && !e.closest('input') && visivel(e)).forEach(e => itens.add(e.textContent.trim()));
+    const rolavel = rolavelDe(raiz);
+    coletar();
+    if (rolavel) {
+      rolavel.scrollTop = 0; await sleep(120);
+      for (let i = 0, ant = -1; i < 600 && rolavel.scrollTop !== ant; i++) { coletar(); ant = rolavel.scrollTop; rolavel.scrollTop += Math.max(40, rolavel.clientHeight * 0.8); await sleep(90); }
+      coletar();
+    }
+    return [...itens];
+  };
+
   // ---------- painel do card ----------
   const campoDescricao = () => {
     const p = painel(); if (!p) return null;
@@ -204,7 +219,17 @@
     if (!(await espera(campoBusca))) return 'a lista de templates não abriu';
     await sleep(PAUSA);
     const item = await buscarItem(nome);
-    if (!item) { await fecharLista(); return `o template ${nome} não existe na lista deste número`; }
+    if (!item) {
+      await digitarBusca('');
+      const tudo = await lerTudo();
+      const radical = nome.replace(/[\d_]+$/, '').slice(0, 8);
+      const parecidos = tudo.filter(t => t.toLowerCase().includes(radical.toLowerCase()));
+      const outros = blocos().filter(bb => numeroDoBloco(bb) !== num).map(bb => `${numeroDoBloco(bb)}=${textoTpl(bb)}`);
+      window.__diagTpl = { numero: num, template: nome, totalNaLista: tudo.length, parecidos, primeiros: tudo.slice(0, 40), outrosBlocosDoCard: outros };
+      console.warn(`  ? ${num}: a lista tem ${tudo.length} item(ns). Parecidos com "${radical}": ${parecidos.slice(0, 12).join(', ') || 'nenhum'}. Outros números do card estão com: ${outros.join(' | ') || '—'}. (detalhes em window.__diagTpl)`);
+      await fecharLista();
+      return `o template ${nome} não existe na lista deste número`;
+    }
     clicar(item);
     await sleep(PAUSA);
     if (campoBusca()) await fecharLista();
