@@ -42,13 +42,17 @@ das saídas do JavaScript. Os blocos ficam à direita do card JavaScript, num lu
 
 ## Descobrir em qual número está cada template
 
-`descobrir-linhas.js` — **somente leitura**. Usa **um** card Template WhatsApp para descobrir em qual número (linha) cada template
-da planilha `Templates_BV_ADM.xlsx` (nome do template + base oficial) está disponível.
+`descobrir-linhas.js` descobre em qual número (linha) cada template da planilha `Templates_BV_ADM.xlsx` (53 nomes + base oficial) está disponível.
+Ele usa **um** card Template WhatsApp e **marca/desmarca os números sozinho**:
 
-1. Abra um card Template WhatsApp (painel *Propriedades*) e marque em **Números WhatsApp** todos os números que quer verificar.
+1. Crie/abra um card Template WhatsApp **descartável** (sem templates escolhidos) e deixe o painel *Propriedades* aberto.
+   Desmarcar um número apaga a configuração dele no card, por isso o script recusa rodar se algum número já tiver template escolhido
+   (a menos que você mude `CARD_DESCARTAVEL = true`).
 2. Cole o script no console e aperte Enter.
-3. Para cada bloco "Configuração do número" ele abre a lista **Template**, rola até o fim lendo os itens e fecha sem escolher nada.
+3. Para cada número da lista de **Números WhatsApp** (ou só os de `NUMEROS = [...]`): deixa só ele marcado, abre a lista **Template**,
+   lê todos os itens (rolando) e fecha sem escolher nada. No fim recoloca os números que estavam marcados no começo.
 4. Resultado: `console.table` (template × base oficial × números), `window.__linhas` e o download `templates_por_numero.csv`.
+5. **Não salve** esse card (ou exclua-o).
 
-Templates que não aparecem em nenhum número vêm como "— não achei —" (e são listados no fim). Para na hora se não conseguir fechar a lista,
-para não escolher um template sem querer. Se não achar o campo Template, guarda o HTML do bloco em `window.__diag`.
+Templates que não aparecem em nenhum número vêm como "— não achei —". Para na hora se não conseguir fechar a lista, para não escolher
+um template sem querer. Se não achar o campo Template, guarda o HTML em `window.__diag`.
