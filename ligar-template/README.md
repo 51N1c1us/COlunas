@@ -56,3 +56,18 @@ Ele usa **um** card Template WhatsApp e **marca/desmarca os números sozinho**:
 
 Templates que não aparecem em nenhum número vêm como "— não achei —". Para na hora se não conseguir fechar a lista, para não escolher
 um template sem querer. Se não achar o campo Template, guarda o HTML em `window.__diag`.
+
+## Configurar números e templates em cada card, e reorganizar
+
+Ordem completa depois de `ligar-saidas.js` e `renomear-cards.js`:
+
+1. **`configurar-templates.js`** — para cada card Template WhatsApp (achado pelo **nome**, ex.: `adm_atualizacaout1`), abre o painel
+   Propriedades, marca em **Números WhatsApp** os números da planilha `templates_por_numero_2.csv` (324 pares card × número) e, no bloco de
+   cada número, escolhe o template com o mesmo nome do card.
+   - A primeira execução faz só 1 card (`QUANTIDADE = 1`). Conferiu? `QUANTIDADE = 0` faz todos; `COMECAR_EM = N` retoma de onde parou.
+   - Números que já estão marcados e templates que já estão certos são pulados (pode rodar de novo). Número com **outro** template só é
+     trocado com `SOBRESCREVER = true`. Números do card fora da planilha são mantidos (use `REMOVER_EXTRAS = true` para tirá-los).
+   - Para na primeira falha de interface; se um template não existir na lista de um número, avisa e segue. Resumo em tabela no fim.
+2. **`organizar-cards.js`** — agora identifica os cards pelo nome e usa a **altura real** de cada card (que cresce com os números), em
+   grade por base oficial, sem sobreposição. No fim confere se algum par de cards ainda se sobrepõe.
+3. Clique em **Salvar**.

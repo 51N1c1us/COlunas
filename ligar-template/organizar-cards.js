@@ -1,13 +1,13 @@
 // Organiza os cards "Template WhatsApp" em blocos pela NOMENCLATURA BASE OFICIAL da planilha,
 // na mesma ordem das saídas do "Executar JavaScript". Arrasta cada card pelo cabeçalho, como você faria à mão.
-// Cole no console do fluxo. A primeira execução mostra o plano e move só 1 card (QUANTIDADE = 1).
+// Cole no console do fluxo. Identifica cada card pelo NOME (rode antes o renomear-cards.js) e usa a altura real de cada card (rode depois do configurar-templates.js).
 (async () => {
-  const QUANTIDADE = 1;            // 1 = teste com um card; 0 = todos
+  const QUANTIDADE = 0;            // 0 = todos; 1 = teste com um card
   const SO_MOSTRAR_PLANO = false;  // true = não move nada, só imprime a tabela do plano
   const COLUNAS_POR_GRUPO = 5;     // cards lado a lado em cada bloco
   const ESPACO_X = 40;             // espaço horizontal entre cards (px do canvas)
-  const ESPACO_Y = 30;             // espaço vertical entre cards
-  const ESPACO_GRUPO = 120;        // espaço vertical entre blocos de grupos
+  const ESPACO_Y = 40;             // espaço vertical entre cards
+  const ESPACO_GRUPO = 200;        // espaço vertical entre blocos de grupos
   const MARGEM_ESQUERDA = 300;     // distância entre o card JavaScript e o primeiro bloco
   const TITULO_ORIGEM = 'Executar JavaScript';
   const TITULO_DESTINO = 'Template WhatsApp';
@@ -78,53 +78,43 @@
   const pos = n => ({ x: parseFloat(n.style.left) || 0, y: parseFloat(n.style.top) || 0 });
   const tam = n => ({ w: n.offsetWidth, h: n.offsetHeight });
 
-  // ---------- 1. mapa saída -> card (igual ao mapear-ligacoes.js) ----------
+  // ---------- 1. cards pelo NOME (o nome do card é o nome da saída, ex.: adm_fluxout3) ----------
   const origem = NODE_ID
     ? document.querySelector(`.task-flow-node[data-node-id="${NODE_ID}"]`)
     : nodes().filter(n => titulo(n) === TITULO_ORIGEM).sort((a, b) => ligadas(b) - ligadas(a))[0];
   if (!origem) return console.error('[organizar] card de origem não encontrado');
+  const esc = origem.getBoundingClientRect().width / origem.offsetWidth || 1; // zoom atual do canvas
+  // ordem das saídas no JavaScript (define a ordem dos cards dentro de cada grupo)
+  const ordemSaida = {};
+  [...origem.querySelectorAll('.branch-item:not(.branch-item--exception) .connector-dot')].forEach((d, i) => { if (!(d.dataset.branchKey in ordemSaida)) ordemSaida[d.dataset.branchKey] = i; });
+  const cards = nodes().filter(n => titulo(n) === TITULO_DESTINO);
+  const porNome = {};
+  for (const n of cards) { const nome = n.querySelector('.node-name .text')?.textContent.trim(); if (nome) (porNome[nome] ||= []).push(n); }
+  const repetidos = Object.entries(porNome).filter(([, l]) => l.length > 1).map(([k]) => k);
+  if (repetidos.length) console.warn('[organizar] PULADOS (mais de um card com o mesmo nome, renomeie):', repetidos.join(', '));
+  const semNome = cards.filter(n => !n.querySelector('.node-name .text')?.textContent.trim());
+  if (semNome.length) console.warn(`[organizar] ${semNome.length} card(s) ${TITULO_DESTINO} sem nome, ficam parados:`, semNome.map(n => n.dataset.nodeId).join(', '));
+  const lista = Object.entries(porNome).filter(([, l]) => l.length === 1)
+    .map(([nome, [n]]) => ({ saida: nome, cardId: n.dataset.nodeId, ordem: nome in ordemSaida ? ordemSaida[nome] : 1e6 + Object.keys(BASE_OFICIAL).indexOf(nome) }))
+    .sort((a, b) => a.ordem - b.ordem);
+  if (!lista.length) return console.error('[organizar] nenhum card Template WhatsApp com nome. Rode antes o renomear-cards.js.');
 
-  const esc = origem.getBoundingClientRect().width / origem.offsetWidth || 1;
-  const centro = r => [r.left + r.width / 2, r.top + r.height / 2];
-  const dots = [...origem.querySelectorAll('.branch-item:not(.branch-item--exception) .connector-dot')]
-    .map((d, ordem) => ({ chave: d.dataset.branchKey, ordem, c: centro(d.getBoundingClientRect()) }));
-
-  const mapa = [];
-  for (const g of document.querySelectorAll('svg.canvas-connections > g')) {
-    const path = g.querySelector('path.connection-line'), fim = g.querySelector('circle');
-    if (!path || !fim) continue;
-    const p0 = path.getPointAtLength(0), m = path.getScreenCTM();
-    const ini = [m.a * p0.x + m.c * p0.y + m.e, m.b * p0.x + m.d * p0.y + m.f];
-    const perto = dots.map(d => ({ d, dist: Math.hypot(d.c[0] - ini[0], d.c[1] - ini[1]) })).sort((a, b) => a.dist - b.dist)[0];
-    if (!perto || perto.dist > 30 * esc) continue;
-    const [ex, ey] = centro(fim.getBoundingClientRect());
-    const alvo = nodes().find(n => {
-      const r = n.getBoundingClientRect();
-      return Math.abs(ex - r.left) <= 20 * esc && ey >= r.top && ey <= r.bottom;
-    });
-    if (alvo && titulo(alvo) === TITULO_DESTINO) mapa.push({ saida: perto.d.chave, ordem: perto.d.ordem, cardId: alvo.dataset.nodeId });
-  }
-  const contagem = {};
-  for (const x of mapa) contagem[x.cardId] = (contagem[x.cardId] || 0) + 1;
-  const duplos = Object.keys(contagem).filter(id => contagem[id] > 1);
-  if (duplos.length) console.warn('[organizar] PULADOS (card ligado a mais de uma saída, ajuste à mão):', duplos);
-  const lista = mapa.filter(x => contagem[x.cardId] === 1).sort((a, b) => a.ordem - b.ordem);
-  if (!lista.length) return console.error('[organizar] nenhum card Template WhatsApp ligado a uma saída.');
-
-  // ---------- 2. grupos e plano de posições ----------
+  // ---------- 2. grupos e plano de posições (usa a altura REAL de cada card) ----------
   const grupoDe = chave => BASE_OFICIAL[chave] || 'SEM BASE OFICIAL (não está na planilha)';
   const grupos = [];
   for (const x of lista) {
     const nome = grupoDe(x.saida);
     let g = grupos.find(y => y.nome === nome);
     if (!g) grupos.push(g = { nome, itens: [] });
-    g.itens.push(x);
+    g.itens.push({ ...x, ...tam(card(x.cardId)) });
   }
   const ids = new Set(lista.map(x => x.cardId));
-  const { w: W, h: H } = tam(card(lista[0].cardId));
+  const W = Math.max(...lista.map(x => tam(card(x.cardId)).w));           // todas as colunas com a mesma largura
   const colunas = g => Math.min(COLUNAS_POR_GRUPO, g.itens.length);
+  const linhasDe = g => { const c = colunas(g), r = []; for (let i = 0; i < g.itens.length; i += c) r.push(g.itens.slice(i, i + c)); return r; };
+  const altura = g => linhasDe(g).reduce((s, l) => s + Math.max(...l.map(i => i.h)), 0) + ESPACO_Y * (linhasDe(g).length - 1);
   const larguraBloco = Math.min(COLUNAS_POR_GRUPO, Math.max(...grupos.map(g => g.itens.length))) * (W + ESPACO_X) - ESPACO_X;
-  const alturaTotal = grupos.reduce((s, g) => s + Math.ceil(g.itens.length / colunas(g)) * (H + ESPACO_Y) - ESPACO_Y, 0) + ESPACO_GRUPO * (grupos.length - 1);
+  const alturaTotal = grupos.reduce((s, g) => s + altura(g), 0) + ESPACO_GRUPO * (grupos.length - 1);
 
   // procura um x livre: não bate em nenhum card que continuará parado
   const o = pos(origem), to = tam(origem);
@@ -140,12 +130,12 @@
   const plano = [];
   let y = y0;
   for (const g of grupos) {
-    const c = colunas(g);
-    g.itens.forEach((x, i) => plano.push({
-      grupo: g.nome, saida: x.saida, cardId: x.cardId,
-      x: Math.round(x0 + (i % c) * (W + ESPACO_X)), y: Math.round(y + Math.floor(i / c) * (H + ESPACO_Y)),
-    }));
-    y += Math.ceil(g.itens.length / c) * (H + ESPACO_Y) - ESPACO_Y + ESPACO_GRUPO;
+    let yl = y;
+    for (const linha of linhasDe(g)) {
+      linha.forEach((it, i) => plano.push({ grupo: g.nome, saida: it.saida, cardId: it.cardId, x: Math.round(x0 + i * (W + ESPACO_X)), y: Math.round(yl) }));
+      yl += Math.max(...linha.map(i => i.h)) + ESPACO_Y;
+    }
+    y += altura(g) + ESPACO_GRUPO;
   }
   console.log(`[organizar] ${plano.length} card(s) em ${grupos.length} grupo(s):`, grupos.map(g => `${g.nome} (${g.itens.length})`).join(', '));
   console.table(plano.map(p => ({ grupo: p.grupo, saida: p.saida, x: p.x, y: p.y })));
@@ -196,6 +186,18 @@
     if (r !== 'ok') { console.error(`[organizar] ${p.saida}: ${r}. Parei.`); break; }
     feitos++;
     console.log(`[organizar] ${feitos}/${QUANTIDADE || plano.length} ${p.saida} → ${p.grupo} ✔`);
+  }
+  // ---------- 4. confere se algum card ficou em cima de outro ----------
+  if (feitos === plano.length) {
+    await sleep(300);
+    const rs = plano.map(p => { const e = card(p.cardId); return { saida: p.saida, ...pos(e), ...tam(e) }; });
+    const batidas = [];
+    for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+      const a = rs[i], b = rs[j];
+      if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) batidas.push(`${a.saida} × ${b.saida}`);
+    }
+    if (batidas.length) console.warn(`[organizar] ATENÇÃO: ${batidas.length} par(es) de cards ainda sobrepostos:`, batidas.join(', '));
+    else console.log('[organizar] nenhum card sobreposto ✔');
   }
   console.log(`[organizar] ${feitos} card(s) movido(s). ${QUANTIDADE ? 'Conferiu? Troque QUANTIDADE por 0 e rode de novo. ' : ''}Depois clique em Salvar.`);
 })();
