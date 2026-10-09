@@ -28,3 +28,14 @@ e mande o resultado: ele mostra quais eventos (mouse/pointer) o canvas realmente
    - Cards ligados a mais de uma saída são pulados e listados no console — confira à mão.
    - Para na primeira falha (painel não abriu, nome não apareceu no card, outro card mudou junto).
 3. Clique em **Salvar**.
+
+## Organizar os cards em grupos
+
+`organizar-cards.js` agrupa os Template WhatsApp pelo tipo da saída (Atualização, Fluxo, Isenção, Expirando, Parcial)
+e arruma cada grupo num bloco em grade (`COLUNAS_POR_GRUPO` cards por linha), com os blocos empilhados na mesma ordem
+das saídas do JavaScript. Os blocos ficam à direita do card JavaScript, num lugar livre.
+
+- Os grupos vêm de `REGRAS` (padrão no nome da saída). Para qualquer outro critério, preencha `GRUPO_MANUAL = { saida: 'Grupo' }`.
+- `SO_MOSTRAR_PLANO = true` só imprime a tabela com a posição de cada card, sem mover nada.
+- A primeira execução move só 1 card (`QUANTIDADE = 1`). Conferiu? `QUANTIDADE = 0` move todos.
+- Cards ligados a mais de uma saída são pulados e listados. Para na primeira falha. Depois, **Salvar**.
