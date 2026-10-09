@@ -72,3 +72,23 @@ Ordem completa depois de `ligar-saidas.js` e `renomear-cards.js`:
 2. **`organizar-cards.js`** — agora identifica os cards pelo nome e usa a **altura real** de cada card (que cresce com os números), em
    grade por base oficial, sem sobreposição. No fim confere se algum par de cards ainda se sobrepõe.
 3. Clique em **Salvar**.
+
+## Organizar QUALQUER fluxo (`organizar-teia.js`)
+
+Funciona em qualquer fluxo, sem planilha nem nomes fixos. O script:
+
+1. **Lê os cards**: título, nome, posição e tamanho real de cada `.task-flow-node`.
+2. **Lê as ligações**: cada linha do canvas (`svg.canvas-connections`) vira "card de origem → card de destino"
+   (origem = dono da bolinha de saída onde a linha começa; destino = card cuja borda esquerda a linha toca).
+3. **Entende a estrutura**: separa os fluxos desconectados, acha o início (card sem entrada; prefere "Início/Gatilho"),
+   dá a cada card uma camada (distância do início), ignora a linha "de volta" de ciclos e reduz cruzamentos de linhas.
+4. **Desenha**:
+   - `MODO = 'camadas'` (padrão): colunas da esquerda para a direita. Quando uma saída leva a muitos cards "fim de linha"
+     (`LIMITE_LEQUE`, padrão 6) eles viram um bloco em grade (`COLUNAS_BLOCO`).
+   - `MODO = 'teia'`: o início no centro e os próximos passos em anéis ao redor, como uma teia.
+   - Fluxos desconectados ficam um embaixo do outro; cards sem nenhuma ligação vão para uma grade no fim.
+5. **Move** cada card arrastando pelo cabeçalho e **confere** se ficou algum card sobreposto e se as ligações continuam todas lá.
+
+Use `SO_MOSTRAR_PLANO = true` para só ver o diagnóstico (cards, ligações, fluxos, ciclos) sem mover nada.
+Não gostou do resultado? `window.__desfazerTeia()` devolve cada card ao lugar original, ou recarregue a página sem salvar.
+Se alguma linha não for identificada, o console lista quais (esses cards são tratados como soltos).
