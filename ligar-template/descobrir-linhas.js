@@ -72,12 +72,20 @@
   const dig = s => s.replace(/\D/g, '').slice(-11);
   const ehNumero = t => /^\+?\d{10,13}$/.test(t.replace(/[\s()-]/g, ''));
   const campoBusca = () => [...document.querySelectorAll('input')].find(i => /pesquisar/i.test(i.placeholder || '') && visivel(i));
+  // fecha a lista aberta: tenta Esc, depois clique FORA (no título "Propriedades"), depois Esc no body. Nunca clica em itens.
+  const clicarFora = () => {
+    const alvo = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && e.textContent.trim() === 'Propriedades' && visivel(e));
+    if (alvo) clicar(alvo); else { document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); document.body.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+  };
+  const esc = alvo => alvo && alvo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true }));
   const fechar = async () => {
-    for (const alvo of [campoBusca(), document.activeElement, document.body]) {
-      if (!alvo) continue;
-      alvo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
-      if (await espera(() => !campoBusca(), 500)) return true;
+    const passos = [() => esc(campoBusca()), clicarFora, () => { esc(document.activeElement); esc(document.body); esc(document); }, clicarFora];
+    for (const passo of passos) {
+      if (!campoBusca()) return true;
+      passo();
+      if (await espera(() => !campoBusca(), 700)) return true;
     }
+    if (campoBusca()) { try { window.__diag = raizLista().outerHTML.slice(0, 6000); } catch (e) {} }
     return !campoBusca();
   };
   const raizLista = () => {
