@@ -132,11 +132,8 @@
     return [...painel.querySelectorAll('*')].find(e => visivel(e) && (rotuloNum.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING)
       && e.getBoundingClientRect().top >= rr.bottom - 2 && (/cursor-pointer|select-none/.test(e.className || '') || getComputedStyle(e).cursor === 'pointer'));
   };
-  const tagsMarcadas = () => {
-    const g = gatilhoNum(); if (!g) return [];
-    const raiz = campoBusca() ? raizLista() : null;
-    return [...new Set([...g.querySelectorAll('*')].filter(e => e.children.length === 0 && ehNumero(e.textContent.trim()) && !(raiz && raiz.contains(e))).map(e => dig(e.textContent)))];
-  };
+  // quais números estão marcados = quais blocos "Configuração do número" existem (mais confiável que ler as etiquetas)
+  const tagsMarcadas = () => [...new Set(blocos().map(numeroDoBloco).filter(Boolean))];
   const abrirNumeros = async () => {
     if (campoBusca()) return true;
     scrollPara(rotuloNum); clicar(gatilhoNum());
@@ -173,23 +170,23 @@
   console.log(`[linhas] ${alvos.length} número(s) a verificar: ${alvos.join(', ')}. Marcados no começo: ${originais.join(', ') || 'nenhum'}.`);
 
   // ---------- 2. liga/desliga um número pela lista ----------
-  const alternar = async num => {
+  const alternar = async (num, quer) => {
     if (!(await abrirNumeros())) return false;
     const item = await acharItem(num, dig);
     if (!item) { console.error(`[linhas] ${num}: não achei na lista.`); return false; }
-    clicar(item); await sleep(PAUSA);
-    return true;
+    clicar(item);
+    // espera o app refletir; NUNCA clica de novo sem ver mudança (clicar de novo desfaz)
+    if (await espera(() => tagsMarcadas().includes(num) === quer, 3000)) { await sleep(PAUSA); return true; }
+    console.error(`[linhas] ${num}: cliquei na linha mas o bloco do número ${quer ? 'não apareceu' : 'não sumiu'}. Marcados agora: ${tagsMarcadas().join(', ') || 'nenhum'}.`);
+    window.__diag = (item.closest('li, [role="option"], div') || item).outerHTML;
+    console.log('[linhas] HTML da linha clicada guardado em window.__diag (digite copy(window.__diag)).');
+    return false;
   };
   const definirSelecao = async desejado => {
-    for (let volta = 0; volta < 3; volta++) {
-      const atual = tagsMarcadas();
-      const adicionar = desejado.filter(n => !atual.includes(n)), remover = atual.filter(n => !desejado.includes(n));
-      if (!adicionar.length && !remover.length) return true;
-      for (const n of adicionar) if (!(await alternar(n))) return false; // primeiro adiciona, depois remove (nunca fica vazio)
-      for (const n of remover) if (!(await alternar(n))) return false;
-    }
     const atual = tagsMarcadas();
-    return desejado.every(n => atual.includes(n)) && atual.every(n => desejado.includes(n));
+    for (const n of desejado.filter(n => !atual.includes(n))) if (!(await alternar(n, true))) return false;   // primeiro adiciona
+    for (const n of tagsMarcadas().filter(n => !desejado.includes(n))) if (!(await alternar(n, false))) return false; // depois remove
+    return true;
   };
 
   // ---------- 3. lê a lista de templates de cada número ----------
