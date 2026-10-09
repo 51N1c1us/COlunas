@@ -39,3 +39,16 @@ das saídas do JavaScript. Os blocos ficam à direita do card JavaScript, num lu
 - `SO_MOSTRAR_PLANO = true` só imprime a tabela com a posição de cada card, sem mover nada.
 - A primeira execução move só 1 card (`QUANTIDADE = 1`). Conferiu? `QUANTIDADE = 0` move todos.
 - Cards ligados a mais de uma saída são pulados e listados. Para na primeira falha. Depois, **Salvar**.
+
+## Descobrir em qual número está cada template
+
+`descobrir-linhas.js` — **somente leitura**. Usa **um** card Template WhatsApp para descobrir em qual número (linha) cada template
+da planilha `Templates_BV_ADM.xlsx` (nome do template + base oficial) está disponível.
+
+1. Abra um card Template WhatsApp (painel *Propriedades*) e marque em **Números WhatsApp** todos os números que quer verificar.
+2. Cole o script no console e aperte Enter.
+3. Para cada bloco "Configuração do número" ele abre a lista **Template**, rola até o fim lendo os itens e fecha sem escolher nada.
+4. Resultado: `console.table` (template × base oficial × números), `window.__linhas` e o download `templates_por_numero.csv`.
+
+Templates que não aparecem em nenhum número vêm como "— não achei —" (e são listados no fim). Para na hora se não conseguir fechar a lista,
+para não escolher um template sem querer. Se não achar o campo Template, guarda o HTML do bloco em `window.__diag`.
