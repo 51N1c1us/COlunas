@@ -1,4 +1,4 @@
-// Organiza os cards "Template WhatsApp" em blocos por grupo (Atualização, Fluxo, Isenção, ...),
+// Organiza os cards "Template WhatsApp" em blocos pela NOMENCLATURA BASE OFICIAL da planilha,
 // na mesma ordem das saídas do "Executar JavaScript". Arrasta cada card pelo cabeçalho, como você faria à mão.
 // Cole no console do fluxo. A primeira execução mostra o plano e move só 1 card (QUANTIDADE = 1).
 (async () => {
@@ -13,21 +13,61 @@
   const TITULO_DESTINO = 'Template WhatsApp';
   const NODE_ID = null;            // opcional: data-node-id do card de origem
 
-  // Como a saída vira grupo: o primeiro padrão que bater vence. Troque/adicione à vontade.
-  const REGRAS = [
-    [/atualiza/i, 'Atualização'],
-    [/fluxo/i, 'Fluxo'],
-    [/isencao|isenção/i, 'Isenção'],
-    [/expirand/i, 'Expirando'],
-    [/parcial/i, 'Parcial'],
-  ];
-  // Vem da planilha Templates_BV_ADM.xlsx (coluna NOMENCLATURA BASE OFICIAL). Saída que não estiver aqui usa REGRAS.
-  const GRUPO_MANUAL = {
-    adm_atualizacaout1: 'Atualização', adm_atualizacaout2: 'Atualização', adm_atualizacaout3: 'Atualização', adm_atualizacaout4: 'Atualização', adm_atualizacaout5: 'Atualização', adm_atualizacaout6: 'Atualização', adm_atualizacaout7: 'Atualização', adm_atualizacaout8: 'Atualização', adm_atualizacaout9: 'Atualização', adm_atualizacaout10: 'Atualização', bvadmatualizacao_21: 'Atualização', bvadmatualizacao_22: 'Atualização', bvadmatualizacao_23: 'Atualização', bvadmatualizacao_24: 'Atualização', bvadmatualizacao_25: 'Atualização', bvadmatualizacao_26: 'Atualização', bvadmatualizacao_27: 'Atualização', bvadmatualizacao_28: 'Atualização', bvadmatualizacao_29: 'Atualização', bvadmatualizacao_30: 'Atualização',
-    adm_fluxout1: 'Fluxo', adm_fluxout2: 'Fluxo', adm_fluxout3: 'Fluxo', adm_fluxout4: 'Fluxo', adm_fluxout5: 'Fluxo', adm_fluxout6: 'Fluxo', adm_fluxout7: 'Fluxo', adm_fluxout8: 'Fluxo', adm_fluxout9: 'Fluxo', adm_fluxout10: 'Fluxo',
-    adm_isencaomk1: 'Isenção', adm_isencaomk2: 'Isenção', adm_isencaomk3: 'Isenção', adm_isencaomk4: 'Isenção', adm_isencaomk5: 'Isenção',
-    adm_expirandout1: 'Expirando', adm_expirandout2: 'Expirando', adm_expirandout3: 'Expirando', adm_expirandout4: 'Expirando', adm_expirandout5: 'Expirando', adm_expirandout6: 'Expirando', adm_expirandout7: 'Expirando', adm_expirandout8: 'Expirando', adm_expirandout9: 'Expirando', adm_expirandout10: 'Expirando',
-    bvadmparcial_1: 'Parcial', bvadmparcial_2: 'Parcial', bvadmparcial_3: 'Parcial', bvadmparcial_5: 'Parcial', bvadmparcial_6: 'Parcial', bvadmparcial_7: 'Parcial', bvadmparcial_8: 'Parcial', bvadmparcial_10: 'Parcial',
+  // Base oficial de cada saída, copiada da planilha Templates_BV_ADM.xlsx (coluna NOMENCLATURA BASE OFICIAL).
+  const BASE_OFICIAL = {
+    'adm_atualizacaout1': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout2': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout3': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout4': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout5': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout6': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout7': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout8': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout9': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_atualizacaout10': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'adm_expirandout1': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout2': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout3': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout4': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout5': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout6': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout7': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout8': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout9': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_expirandout10': 'TRAD EXPIRANDO LOC / TRAD EXPIRANDO DESLOC',
+    'adm_fluxout1': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout2': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout3': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout4': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout5': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout6': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout7': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout8': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout9': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_fluxout10': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC',
+    'adm_isencaomk1': 'TRAD ISENCAO LOC / TRAD ISENCAO DESLOC',
+    'adm_isencaomk2': 'TRAD ISENCAO LOC / TRAD ISENCAO DESLOC',
+    'adm_isencaomk3': 'TRAD ISENCAO LOC / TRAD ISENCAO DESLOC',
+    'adm_isencaomk4': 'TRAD ISENCAO LOC / TRAD ISENCAO DESLOC',
+    'adm_isencaomk5': 'TRAD ISENCAO LOC / TRAD ISENCAO DESLOC',
+    'bvadmatualizacao_21': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_22': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_23': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_24': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_25': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_26': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_27': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_28': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_29': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmatualizacao_30': 'TRAD FLUXO LOC / TRAD FLUXO DESLOC / TRAD LOC / TRAD DESLOC',
+    'bvadmparcial_1': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_2': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_3': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_5': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_6': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_7': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_8': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
+    'bvadmparcial_10': 'TRAD PARCIAL LOC / TRAD PARCIAL DESLOC',
   };
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -72,9 +112,7 @@
   if (!lista.length) return console.error('[organizar] nenhum card Template WhatsApp ligado a uma saída.');
 
   // ---------- 2. grupos e plano de posições ----------
-  const grupoDe = chave => GRUPO_MANUAL[chave]
-    || (REGRAS.find(([re]) => re.test(chave)) || [])[1]
-    || chave.replace(/[_\d]+$/, '').replace(/(ut|mk)$/i, '') || 'Outros';
+  const grupoDe = chave => BASE_OFICIAL[chave] || 'SEM BASE OFICIAL (não está na planilha)';
   const grupos = [];
   for (const x of lista) {
     const nome = grupoDe(x.saida);
