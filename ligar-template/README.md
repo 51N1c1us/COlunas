@@ -35,7 +35,7 @@ e mande o resultado: ele mostra quais eventos (mouse/pointer) o canvas realmente
 e arruma cada grupo num bloco em grade (`COLUNAS_POR_GRUPO` cards por linha), com os blocos empilhados na mesma ordem
 das saídas do JavaScript. Os blocos ficam à direita do card JavaScript, num lugar livre.
 
-- Os grupos vêm de `REGRAS` (padrão no nome da saída). Para qualquer outro critério, preencha `GRUPO_MANUAL = { saida: 'Grupo' }`.
+- Os grupos vêm de `GRUPO_MANUAL`, já preenchido com a planilha `Templates_BV_ADM.xlsx` (53 saídas, 5 grupos). Saída fora da lista cai em `REGRAS` (padrão no nome).
 - `SO_MOSTRAR_PLANO = true` só imprime a tabela com a posição de cada card, sem mover nada.
 - A primeira execução move só 1 card (`QUANTIDADE = 1`). Conferiu? `QUANTIDADE = 0` move todos.
 - Cards ligados a mais de uma saída são pulados e listados. Para na primeira falha. Depois, **Salvar**.

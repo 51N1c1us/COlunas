@@ -21,8 +21,14 @@
     [/expirand/i, 'Expirando'],
     [/parcial/i, 'Parcial'],
   ];
-  // Para forçar um grupo por saída (ex.: vindo do CSV): { adm_fluxout1: 'Fluxo dia', ... }
-  const GRUPO_MANUAL = {};
+  // Vem da planilha Templates_BV_ADM.xlsx (coluna NOMENCLATURA BASE OFICIAL). Saída que não estiver aqui usa REGRAS.
+  const GRUPO_MANUAL = {
+    adm_atualizacaout1: 'Atualização', adm_atualizacaout2: 'Atualização', adm_atualizacaout3: 'Atualização', adm_atualizacaout4: 'Atualização', adm_atualizacaout5: 'Atualização', adm_atualizacaout6: 'Atualização', adm_atualizacaout7: 'Atualização', adm_atualizacaout8: 'Atualização', adm_atualizacaout9: 'Atualização', adm_atualizacaout10: 'Atualização', bvadmatualizacao_21: 'Atualização', bvadmatualizacao_22: 'Atualização', bvadmatualizacao_23: 'Atualização', bvadmatualizacao_24: 'Atualização', bvadmatualizacao_25: 'Atualização', bvadmatualizacao_26: 'Atualização', bvadmatualizacao_27: 'Atualização', bvadmatualizacao_28: 'Atualização', bvadmatualizacao_29: 'Atualização', bvadmatualizacao_30: 'Atualização',
+    adm_fluxout1: 'Fluxo', adm_fluxout2: 'Fluxo', adm_fluxout3: 'Fluxo', adm_fluxout4: 'Fluxo', adm_fluxout5: 'Fluxo', adm_fluxout6: 'Fluxo', adm_fluxout7: 'Fluxo', adm_fluxout8: 'Fluxo', adm_fluxout9: 'Fluxo', adm_fluxout10: 'Fluxo',
+    adm_isencaomk1: 'Isenção', adm_isencaomk2: 'Isenção', adm_isencaomk3: 'Isenção', adm_isencaomk4: 'Isenção', adm_isencaomk5: 'Isenção',
+    adm_expirandout1: 'Expirando', adm_expirandout2: 'Expirando', adm_expirandout3: 'Expirando', adm_expirandout4: 'Expirando', adm_expirandout5: 'Expirando', adm_expirandout6: 'Expirando', adm_expirandout7: 'Expirando', adm_expirandout8: 'Expirando', adm_expirandout9: 'Expirando', adm_expirandout10: 'Expirando',
+    bvadmparcial_1: 'Parcial', bvadmparcial_2: 'Parcial', bvadmparcial_3: 'Parcial', bvadmparcial_5: 'Parcial', bvadmparcial_6: 'Parcial', bvadmparcial_7: 'Parcial', bvadmparcial_8: 'Parcial', bvadmparcial_10: 'Parcial',
+  };
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const nodes = () => [...document.querySelectorAll('.task-flow-node')];
